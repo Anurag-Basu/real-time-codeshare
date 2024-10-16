@@ -1,12 +1,20 @@
-import './App.css'
+import React from "react";
+import { BrowserRouter } from "react-router-dom";
+import AppRoutes from "./routes/routes";
+import { Toaster } from "react-hot-toast";
 
-function App() {
-
+const App: React.FC = () => {
   return (
     <>
-      <h1 className='bg-red-500'>Hello</h1>
+      <div>
+        <Toaster position="top-center"></Toaster>
+      </div>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
     </>
-  )
-}
+  );
+};
 
-export default App
+export default App;
+
