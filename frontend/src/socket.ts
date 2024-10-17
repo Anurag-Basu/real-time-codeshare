@@ -1,5 +1,18 @@
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-const URL = 'http://localhost:8000/';
+export const initSocket = async () => {
+  const options = {
+    "force new connection": true,
+    reconnectionAttempts: Infinity,
+    timeout: 100000,
+    transports: ["websocket"],
+  };
+  console.log(import.meta.env.REACT_APP_BACKEND_URL)
+  return io(import.meta.env.REACT_APP_BACKEND_URL || "http://localhost:8000/", options);
+};
 
-export const socket = io(URL);
+// import { io } from 'socket.io-client';
+
+// const URL = 'http://localhost:8000/';
+
+// export const initSocket = io(URL);
