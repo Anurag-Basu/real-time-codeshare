@@ -1,17 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 // import { initSocket } from "../Socket";
-import {
-  useNavigate,
-  useLocation,
-  Navigate,
-  useParams,
-} from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { v4 as uuid } from "uuid";
 import { toast } from "react-hot-toast";
 import { ACTIONS } from "../../utils/actions";
 import { ClientAvatar, EditorComponent } from "../../component";
-import { initSocket } from "../../socket";
+import { SocketIo } from "../../socket.ts";
 
 const LANGUAGES = [
   "python3",
@@ -41,87 +36,22 @@ function EditorPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<string>("python3");
 
-  const codeRef = useRef<string | null>(null);
-  const socketRef = useRef<any>(null);
-
   const navigate = useNavigate();
   const location = useLocation();
   const { roomId } = useParams();
 
-  // useEffect(() => {
-  //   const init = async () => {
-  //     socketRef.current = await initSocket();
-  //     socketRef.current.on("connect_error", handleError);
-  //     socketRef.current.on("connect_failed", handleError);
-
-  //     console.log("ACTION.JOIN");
-  //     socketRef.current.emit(ACTIONS.JOIN, {
-  //       roomId,
-  //       username: location.state?.username,
-  //     });
-
-  //     socketRef.current.on(
-  //       ACTIONS.JOINED,
-  //       ({
-  //         clients,
-  //         username,
-  //         socketId,
-  //       }: {
-  //         clients: Client[];
-  //         username: string;
-  //         socketId: string;
-  //       }) => {
-  //         if (username !== location.state?.username) {
-  //           toast.success(`${username} joined the room.`);
-  //         }
-  //         setClients(clients);
-  //         if (codeRef.current) {
-  //           socketRef.current.emit(ACTIONS.SYNC_CODE, {
-  //             code: codeRef.current,
-  //             socketId,
-  //           });
-  //         }
-  //       }
-  //     );
-
-  //     socketRef.current.on(
-  //       ACTIONS.DISCONNECTED,
-  //       ({ socketId, username }: { socketId: string; username: string }) => {
-  //         toast.success(`${username} left the room`);
-  //         setClients((prev) =>
-  //           prev.filter((client) => client.socketId !== socketId)
-  //         );
-  //       }
-  //     );
-  //   };
-
-  //   const handleError = (err: Error) => {
-  //     console.log("Error", err);
-  //     toast.error("Socket connection failed, Try again later");
-  //     navigate("/");
-  //   };
-
-  //   if (roomId) init();
-
-  //   return () => {
-  //     socketRef.current?.disconnect();
-  //     socketRef.current?.off(ACTIONS.JOINED);
-  //     socketRef.current?.off(ACTIONS.DISCONNECTED);
-  //   };
-  // }, [location.state, navigate, roomId]);
-
   useEffect(() => {
-    const init = async () => {
-      socketRef.current = await initSocket();
-      socketRef.current.on("connect_error", handleError);
-      socketRef.current.on("connect_failed", handleError);
+      // socketRef.current = await initSocket();
+      // socketRef.current.on("connect_error", handleError);
+      // socketRef.current.on("connect_failed", handleError);
 
-      socketRef.current.emit(ACTIONS.JOIN, {
+      // console.log("ACTION.JOIN");
+      SocketIo.emit(ACTIONS.JOIN, {
         roomId,
         username: location.state?.username,
       });
 
-      socketRef.current.on(
+      SocketIo.on(
         ACTIONS.JOINED,
         ({
           clients,
@@ -136,18 +66,16 @@ function EditorPage() {
             toast.success(`${username} joined the room.`);
           }
           setClients(clients);
-
-          // Send the current code to the new user (only for the user who joined)
-          if (codeRef.current) {
-            socketRef.current.emit(ACTIONS.SYNC_CODE, {
-              code: codeRef.current,
-              socketId, // Send the current code to the new user who joined
-            });
-          }
+          // if (codeRef.current) {
+          //   SocketIo.emit(ACTIONS.SYNC_CODE, {
+          //     code: codeRef.current,
+          //     socketId,
+          //   });
+          // }
         }
       );
 
-      socketRef.current.on(
+      SocketIo.on(
         ACTIONS.DISCONNECTED,
         ({ socketId, username }: { socketId: string; username: string }) => {
           toast.success(`${username} left the room`);
@@ -156,27 +84,26 @@ function EditorPage() {
           );
         }
       );
-    };
 
-    const handleError = (err: Error) => {
-      toast.error("Socket connection failed, Try again later");
-      console.log(err);
-      navigate("/");
-    };
+    // const handleError = (err: Error) => {
+    //   console.log("Error", err);
+    //   toast.error("Socket connection failed, Try again later");
+    //   navigate("/");
+    // };
 
-    if (roomId) init();
 
     return () => {
-      socketRef.current?.disconnect();
-      socketRef.current?.off(ACTIONS.JOINED);
-      socketRef.current?.off(ACTIONS.DISCONNECTED);
+      SocketIo.disconnect();
+      SocketIo.off(ACTIONS.JOINED);
+      SocketIo.off(ACTIONS.DISCONNECTED);
     };
   }, [location.state, navigate, roomId]);
 
-  if (!location.state) {
-    return <Navigate to="/" />;
-  }
 
+  // if (!location.state) {
+  //   return <Navigate to="/" />;
+  // }
+  console.log({ clients }, location.state);
   const copyRoomId = async () => {
     try {
       await navigator.clipboard.writeText(roomId || "");
@@ -190,6 +117,15 @@ function EditorPage() {
   const leaveRoom = () => {
     navigate("/");
   };
+
+  useEffect(() => {
+    if (!roomId || !location.state) return;
+
+    SocketIo.emit(ACTIONS.JOIN, {
+      roomId,
+      username: location.state?.username,
+    });
+  }, [roomId, location]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -247,14 +183,7 @@ function EditorPage() {
             </select>
           </div>
 
-          <EditorComponent
-            key={uuid()}
-            socketRef={socketRef}
-            roomId={roomId || ""}
-            onCodeChange={(code: string) => {
-              codeRef.current = code;
-            }}
-          />
+          <EditorComponent key={uuid()} roomId={roomId || ""} />
         </div>
       </div>
     </div>
