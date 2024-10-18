@@ -7,8 +7,8 @@ import {
   Navigate,
   useParams,
 } from "react-router-dom";
+import { v4 as uuid } from "uuid";
 import { toast } from "react-hot-toast";
-import axios from "axios";
 import { ACTIONS } from "../../utils/actions";
 import { ClientAvatar, EditorComponent } from "../../component";
 import { initSocket } from "../../socket";
@@ -39,10 +39,6 @@ interface Client {
 
 function EditorPage() {
   const [clients, setClients] = useState<Client[]>([]);
-  const [output, setOutput] = useState<string>("");
-  const [isCompileWindowOpen, setIsCompileWindowOpen] =
-    useState<boolean>(false);
-  const [isCompiling, setIsCompiling] = useState<boolean>(false);
   const [selectedLanguage, setSelectedLanguage] = useState<string>("python3");
 
   const codeRef = useRef<string | null>(null);
@@ -51,6 +47,68 @@ function EditorPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { roomId } = useParams();
+
+  // useEffect(() => {
+  //   const init = async () => {
+  //     socketRef.current = await initSocket();
+  //     socketRef.current.on("connect_error", handleError);
+  //     socketRef.current.on("connect_failed", handleError);
+
+  //     console.log("ACTION.JOIN");
+  //     socketRef.current.emit(ACTIONS.JOIN, {
+  //       roomId,
+  //       username: location.state?.username,
+  //     });
+
+  //     socketRef.current.on(
+  //       ACTIONS.JOINED,
+  //       ({
+  //         clients,
+  //         username,
+  //         socketId,
+  //       }: {
+  //         clients: Client[];
+  //         username: string;
+  //         socketId: string;
+  //       }) => {
+  //         if (username !== location.state?.username) {
+  //           toast.success(`${username} joined the room.`);
+  //         }
+  //         setClients(clients);
+  //         if (codeRef.current) {
+  //           socketRef.current.emit(ACTIONS.SYNC_CODE, {
+  //             code: codeRef.current,
+  //             socketId,
+  //           });
+  //         }
+  //       }
+  //     );
+
+  //     socketRef.current.on(
+  //       ACTIONS.DISCONNECTED,
+  //       ({ socketId, username }: { socketId: string; username: string }) => {
+  //         toast.success(`${username} left the room`);
+  //         setClients((prev) =>
+  //           prev.filter((client) => client.socketId !== socketId)
+  //         );
+  //       }
+  //     );
+  //   };
+
+  //   const handleError = (err: Error) => {
+  //     console.log("Error", err);
+  //     toast.error("Socket connection failed, Try again later");
+  //     navigate("/");
+  //   };
+
+  //   if (roomId) init();
+
+  //   return () => {
+  //     socketRef.current?.disconnect();
+  //     socketRef.current?.off(ACTIONS.JOINED);
+  //     socketRef.current?.off(ACTIONS.DISCONNECTED);
+  //   };
+  // }, [location.state, navigate, roomId]);
 
   useEffect(() => {
     const init = async () => {
@@ -78,10 +136,14 @@ function EditorPage() {
             toast.success(`${username} joined the room.`);
           }
           setClients(clients);
-          socketRef.current.emit(ACTIONS.SYNC_CODE, {
-            code: codeRef.current,
-            socketId,
-          });
+
+          // Send the current code to the new user (only for the user who joined)
+          if (codeRef.current) {
+            socketRef.current.emit(ACTIONS.SYNC_CODE, {
+              code: codeRef.current,
+              socketId, // Send the current code to the new user who joined
+            });
+          }
         }
       );
 
@@ -97,12 +159,12 @@ function EditorPage() {
     };
 
     const handleError = (err: Error) => {
-      console.log("Error", err);
       toast.error("Socket connection failed, Try again later");
+      console.log(err);
       navigate("/");
     };
 
-    init();
+    if (roomId) init();
 
     return () => {
       socketRef.current?.disconnect();
@@ -127,26 +189,6 @@ function EditorPage() {
 
   const leaveRoom = () => {
     navigate("/");
-  };
-
-  const runCode = async () => {
-    setIsCompiling(true);
-    try {
-      const response = await axios.post("http://localhost:8000/compile", {
-        code: codeRef.current,
-        language: selectedLanguage,
-      });
-      setOutput(response.data.output || JSON.stringify(response.data));
-    } catch (error: any) {
-      console.error("Error compiling code:", error);
-      setOutput(error.response?.data?.error || "An error occurred");
-    } finally {
-      setIsCompiling(false);
-    }
-  };
-
-  const toggleCompileWindow = () => {
-    setIsCompileWindowOpen(!isCompileWindowOpen);
   };
 
   return (
@@ -206,6 +248,7 @@ function EditorPage() {
           </div>
 
           <EditorComponent
+            key={uuid()}
             socketRef={socketRef}
             roomId={roomId || ""}
             onCodeChange={(code: string) => {
@@ -213,52 +256,6 @@ function EditorPage() {
             }}
           />
         </div>
-      </div>
-
-      {/* Compiler toggle button */}
-      <button
-        className="fixed px-4 py-2 text-white bg-blue-600 rounded bottom-4 right-4 hover:bg-blue-700"
-        onClick={toggleCompileWindow}
-      >
-        {isCompileWindowOpen ? "Close Compiler" : "Open Compiler"}
-      </button>
-
-      {/* Compiler section */}
-      <div
-        className={`bg-gray-900 text-white p-4 transition-all ${
-          isCompileWindowOpen ? "block" : "hidden"
-        }`}
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "30vh",
-          zIndex: 1040,
-          overflowY: "auto",
-        }}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <h5 className="m-0 text-lg">Compiler Output ({selectedLanguage})</h5>
-          <div>
-            <button
-              className="px-4 py-2 mr-2 text-white bg-green-600 rounded hover:bg-green-700"
-              onClick={runCode}
-              disabled={isCompiling}
-            >
-              {isCompiling ? "Compiling..." : "Run Code"}
-            </button>
-            <button
-              className="px-4 py-2 text-white bg-gray-600 rounded hover:bg-gray-700"
-              onClick={toggleCompileWindow}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-        <pre className="p-4 bg-gray-800 rounded">
-          {output || "Output will appear here after compilation"}
-        </pre>
       </div>
     </div>
   );
