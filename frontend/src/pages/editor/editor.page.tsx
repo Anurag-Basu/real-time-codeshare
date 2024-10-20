@@ -41,56 +41,56 @@ function EditorPage() {
   const { roomId } = useParams();
 
   useEffect(() => {
-      // socketRef.current = await initSocket();
-      // socketRef.current.on("connect_error", handleError);
-      // socketRef.current.on("connect_failed", handleError);
+    // socketRef.current = await initSocket();
+    // socketRef.current.on("connect_error", handleError);
+    // socketRef.current.on("connect_failed", handleError);
 
-      // console.log("ACTION.JOIN");
-      SocketIo.emit(ACTIONS.JOIN, {
-        roomId,
-        username: location.state?.username,
-      });
+    // console.log("ACTION.JOIN");
+    SocketIo.emit(ACTIONS.JOIN, {
+      roomId,
+      username: location.state?.username,
+    });
 
-      SocketIo.on(
-        ACTIONS.JOINED,
-        ({
-          clients,
-          username,
+    SocketIo.on(
+      ACTIONS.JOINED,
+      ({
+        clients,
+        username,
+        socketId,
+      }: {
+        clients: Client[];
+        username: string;
+        socketId: string;
+      }) => {
+        if (username !== location.state?.username) {
+          toast.success(`${username} joined the room.`);
+        }
+        console.log(socketId);
+        setClients(clients);
+        // if (codeRef.current) {
+        SocketIo.emit(ACTIONS.SYNC_CODE, {
           socketId,
-        }: {
-          clients: Client[];
-          username: string;
-          socketId: string;
-        }) => {
-          if (username !== location.state?.username) {
-            toast.success(`${username} joined the room.`);
-          }
-          setClients(clients);
-          // if (codeRef.current) {
-          //   SocketIo.emit(ACTIONS.SYNC_CODE, {
-          //     code: codeRef.current,
-          //     socketId,
-          //   });
-          // }
-        }
-      );
+          roomId,
+        });
+        // }
+      }
+    );
 
-      SocketIo.on(
-        ACTIONS.DISCONNECTED,
-        ({ socketId, username }: { socketId: string; username: string }) => {
-          toast.success(`${username} left the room`);
-          setClients((prev) =>
-            prev.filter((client) => client.socketId !== socketId)
-          );
-        }
-      );
+    SocketIo.on(
+      ACTIONS.DISCONNECTED,
+      ({ socketId, username }: { socketId: string; username: string }) => {
+        toast.success(`${username} left the room`);
+        setClients((prev) =>
+          prev.filter((client) => client.socketId !== socketId)
+        );
+      }
+    );
 
     // const handleError = (err: Error) => {
     //   console.log("Error", err);
     //   toast.error("Socket connection failed, Try again later");
     //   navigate("/");
     // };
-
 
     return () => {
       SocketIo.disconnect();
@@ -99,6 +99,12 @@ function EditorPage() {
     };
   }, [location.state, navigate, roomId]);
 
+  useEffect(() => {
+    SocketIo.emit(ACTIONS.SYNC_CODE, {
+      socketId: "",
+      roomId,
+    });
+  }, []);
 
   // if (!location.state) {
   //   return <Navigate to="/" />;

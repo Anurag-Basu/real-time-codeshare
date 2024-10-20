@@ -56,13 +56,18 @@ io.on("connection", (socket) => {
   // sync the code
   socket.on(ACTIONS.CODE_CHANGE, ({ roomId, code }) => {
     roomCodeMap[roomId] = code;
+    console.log('codechange');
     socket.in(roomId).emit(ACTIONS.CODE_CHANGE, { code });
   });
 
   // const currentCode = roomCodeMap[roomId] || "";
 
-  socket.on(ACTIONS.SYNC_CODE, ({ socketId }) => {
-    io.to(socketId).emit(ACTIONS.CODE_CHANGE, { code: code });
+  socket.on(ACTIONS.SYNC_CODE, ({ socketId, roomId }) => {
+    const currentCode = roomCodeMap[roomId];
+
+    console.log("syncCode", { roomId, currentCode });
+    socket.in(roomId).emit(ACTIONS.CODE_CHANGE, {code: currentCode})
+    // io.to(socketId).emit(ACTIONS.CODE_CHANGE, { code: code });
   });
 
   // leave room
