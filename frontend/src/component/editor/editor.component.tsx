@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 // import { ACTIONS } from "../../utils/actions";
 import TextArea from "antd/es/input/TextArea";
 import { SocketIo } from "../../socket";
 import { ACTIONS } from "../../utils/actions";
-
+import "./editor.component.css";
 interface EditorProps {
   // socketRef: React.MutableRefObject<any>;
   roomId: string;
@@ -13,11 +13,8 @@ interface EditorProps {
 }
 
 const EditorComponent: React.FC<EditorProps> = ({ roomId }) => {
-  const editorRef = useRef<CodeMirror.EditorFromTextArea | null>(null);
   const [code, setCode] = useState<string>("");
   console.log({ roomId });
-
-  console.log(editorRef.current);
 
   const onChangeCode = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const code = e.target.value;
@@ -29,7 +26,9 @@ const EditorComponent: React.FC<EditorProps> = ({ roomId }) => {
   };
 
   useEffect(() => {
+    console.log("entered codeChange", { code });
     SocketIo.on(ACTIONS.CODE_CHANGE, ({ code }: { code: string }) => {
+      console.log("useEffect codeChange", { code });
       setCode(code);
     });
 
@@ -38,20 +37,12 @@ const EditorComponent: React.FC<EditorProps> = ({ roomId }) => {
     };
   }, []);
 
-  // useEffect(() => {
-  //   // Listen for code sync when a new user joins
-  //   SocketIo.on(ACTIONS.SYNC_CODE, ({ code }: { code: string }) => {
-  //     setCode(code); // Set the code to the one from the server
-  //   });
-
-  //   return () => {
-  //     SocketIo.off(ACTIONS.SYNC_CODE); 
-  //   };
-  // }, []);
+  console.log({ code });
 
   return (
     <div className="h-[600px]">
       <TextArea
+        placeholder="type here..."
         value={code}
         onChange={onChangeCode}
         id="realtimeEditor"

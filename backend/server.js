@@ -49,25 +49,22 @@ io.on("connection", (socket) => {
       });
     });
 
-    // const currentCode = roomCodeMap[roomId];
-    // io.to(socket.Id).emit(ACTIONS.SYNC_CODE, { code: currentCode });
   });
 
   // sync the code
   socket.on(ACTIONS.CODE_CHANGE, ({ roomId, code }) => {
     roomCodeMap[roomId] = code;
-    console.log('codechange');
+    console.log("codechange");
     socket.in(roomId).emit(ACTIONS.CODE_CHANGE, { code });
   });
 
-  // const currentCode = roomCodeMap[roomId] || "";
 
-  socket.on(ACTIONS.SYNC_CODE, ({ socketId, roomId }) => {
+  socket.on(ACTIONS.SYNC_CODE, ({ roomId }) => {
     const currentCode = roomCodeMap[roomId];
 
     console.log("syncCode", { roomId, currentCode });
-    socket.in(roomId).emit(ACTIONS.CODE_CHANGE, {code: currentCode})
-    // io.to(socketId).emit(ACTIONS.CODE_CHANGE, { code: code });
+    io.in(roomId).emit(ACTIONS.CODE_CHANGE, { code: currentCode });
+    socket.emit(ACTIONS.CODE_CHANGE, { code: currentCode });
   });
 
   // leave room
@@ -81,11 +78,14 @@ io.on("connection", (socket) => {
       });
     });
 
-    delete userSocketMap[socket.id];
-    socket.leave();
+    // delete userSocketMap[socket.id];
+    // socket.leave();
+
+    setTimeout(() => {
+      delete userSocketMap[socket.id];
+    }, 10000); // 10 seconds grace period
   });
 });
 
-// const PORT = process.env.PORT || 5000;
 const PORT = 8000;
 server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

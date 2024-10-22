@@ -8,24 +8,24 @@ import { ACTIONS } from "../../utils/actions";
 import { ClientAvatar, EditorComponent } from "../../component";
 import { SocketIo } from "../../socket.ts";
 
-const LANGUAGES = [
-  "python3",
-  "java",
-  "cpp",
-  "nodejs",
-  "c",
-  "ruby",
-  "go",
-  "scala",
-  "bash",
-  "sql",
-  "pascal",
-  "csharp",
-  "php",
-  "swift",
-  "rust",
-  "r",
-];
+// const LANGUAGES = [
+//   "python3",
+//   "java",
+//   "cpp",
+//   "nodejs",
+//   "c",
+//   "ruby",
+//   "go",
+//   "scala",
+//   "bash",
+//   "sql",
+//   "pascal",
+//   "csharp",
+//   "php",
+//   "swift",
+//   "rust",
+//   "r",
+// ];
 
 interface Client {
   socketId: string;
@@ -34,82 +34,12 @@ interface Client {
 
 function EditorPage() {
   const [clients, setClients] = useState<Client[]>([]);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>("python3");
+  // const [selectedLanguage, setSelectedLanguage] = useState<string>("python3");
 
   const navigate = useNavigate();
   const location = useLocation();
   const { roomId } = useParams();
 
-  useEffect(() => {
-    // socketRef.current = await initSocket();
-    // socketRef.current.on("connect_error", handleError);
-    // socketRef.current.on("connect_failed", handleError);
-
-    // console.log("ACTION.JOIN");
-    SocketIo.emit(ACTIONS.JOIN, {
-      roomId,
-      username: location.state?.username,
-    });
-
-    SocketIo.on(
-      ACTIONS.JOINED,
-      ({
-        clients,
-        username,
-        socketId,
-      }: {
-        clients: Client[];
-        username: string;
-        socketId: string;
-      }) => {
-        if (username !== location.state?.username) {
-          toast.success(`${username} joined the room.`);
-        }
-        console.log(socketId);
-        setClients(clients);
-        // if (codeRef.current) {
-        SocketIo.emit(ACTIONS.SYNC_CODE, {
-          socketId,
-          roomId,
-        });
-        // }
-      }
-    );
-
-    SocketIo.on(
-      ACTIONS.DISCONNECTED,
-      ({ socketId, username }: { socketId: string; username: string }) => {
-        toast.success(`${username} left the room`);
-        setClients((prev) =>
-          prev.filter((client) => client.socketId !== socketId)
-        );
-      }
-    );
-
-    // const handleError = (err: Error) => {
-    //   console.log("Error", err);
-    //   toast.error("Socket connection failed, Try again later");
-    //   navigate("/");
-    // };
-
-    return () => {
-      SocketIo.disconnect();
-      SocketIo.off(ACTIONS.JOINED);
-      SocketIo.off(ACTIONS.DISCONNECTED);
-    };
-  }, [location.state, navigate, roomId]);
-
-  useEffect(() => {
-    SocketIo.emit(ACTIONS.SYNC_CODE, {
-      socketId: "",
-      roomId,
-    });
-  }, []);
-
-  // if (!location.state) {
-  //   return <Navigate to="/" />;
-  // }
-  console.log({ clients }, location.state);
   const copyRoomId = async () => {
     try {
       await navigator.clipboard.writeText(roomId || "");
@@ -123,6 +53,68 @@ function EditorPage() {
   const leaveRoom = () => {
     navigate("/");
   };
+
+  useEffect(() => {
+    // socketRef.current = await initSocket();
+    // socketRef.current.on("connect_error", handleError);
+    // socketRef.current.on("connect_failed", handleError);
+
+    const handleUserJoined = ({
+      clients,
+      username,
+      socketId,
+    }: {
+      clients: Client[];
+      username: string;
+      socketId: string;
+    }) => {
+      if (username !== location.state?.username) {
+        toast.success(`${username} joined the room.`);
+      }
+      console.log(socketId);
+      setClients(clients);
+      SocketIo.emit(ACTIONS.SYNC_CODE, {
+        socketId,
+        roomId,
+      });
+    };
+
+    // console.log("ACTION.JOIN");
+    SocketIo.emit(ACTIONS.JOIN, {
+      roomId,
+      username: location.state?.username,
+    });
+
+    SocketIo.on(ACTIONS.JOINED, handleUserJoined);
+
+    SocketIo.on(
+      ACTIONS.DISCONNECTED,
+      ({ socketId, username }: { socketId: string; username: string }) => {
+        toast.success(`${username} left the room`);
+        setClients((prev) =>
+          prev.filter((client) => client.socketId !== socketId)
+        );
+      }
+    );
+
+    return () => {
+      SocketIo.disconnect();
+      SocketIo.off(ACTIONS.JOINED, handleUserJoined);
+      SocketIo.off(ACTIONS.DISCONNECTED);
+    };
+  }, [location.state, navigate, roomId]);
+
+  useEffect(() => {
+    console.log("infoo reEnterd");
+    SocketIo.emit(ACTIONS.SYNC_CODE, {
+      roomId,
+    });
+  }, []);
+
+  // if (!location.state) {
+  //   return <Navigate to="/" />;
+  // }
+  console.log({ clients }, location.state);
 
   useEffect(() => {
     if (!roomId || !location.state) return;
@@ -175,7 +167,7 @@ function EditorPage() {
         {/* Editor panel */}
         <div className="flex flex-col w-4/5">
           {/* Language selector */}
-          <div className="flex justify-end p-4 bg-gray-800">
+          {/* <div className="flex justify-end p-4 bg-gray-800">
             <select
               className="px-4 py-2 text-white bg-gray-700 rounded"
               value={selectedLanguage}
@@ -187,9 +179,12 @@ function EditorPage() {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
 
-          <EditorComponent key={uuid()} roomId={roomId || ""} />
+          <EditorComponent
+            key={uuid()}
+            roomId={roomId || ""}
+          />
         </div>
       </div>
     </div>
