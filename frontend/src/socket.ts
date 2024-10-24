@@ -11,8 +11,9 @@
 //   return io(import.meta.env.REACT_APP_BACKEND_URL || "http://localhost:8000/", options);
 // };
 
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-const URL = 'http://localhost:8000/';
+// const URL = 'http://localhost:8000/';
+const URL = "https://real-time-codeshare.vercel.app/";
 
 export const SocketIo = io(URL);
