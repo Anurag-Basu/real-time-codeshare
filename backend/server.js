@@ -15,14 +15,6 @@ app.use(
 
 app.use(express.json());
 
-app.use((req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' https://vercel.live"
-  );
-  next();
-});
-
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -95,6 +87,10 @@ io.on("connection", (socket) => {
       delete userSocketMap[socket.id];
     }, 10000); // 10 seconds grace period
   });
+});
+
+app.use("/", (req, res) => {
+  return res.json({ message: "Welcome!" });
 });
 
 const PORT = 8000;
